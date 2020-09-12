@@ -1,33 +1,27 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
+#VOLUME /var/lib/mysql
+
 RUN echo 'start build' \
 # if you are not in China,delete the following two lines
     && sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \
     && sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list \
     && apt update \
-    && apt --no-install-recommends install wget -y \
-    && wget http://soft.vpser.net/lnmp/lnmp1.7.tar.gz -cO lnmp1.7.tar.gz && tar zxf lnmp1.7.tar.gz && cd lnmp1.7 \
-    && sed -i 's/gcc-c++/g++/g' include/init.sh \
-    && sed -i 's/Echo_Green "Install lnmp V${LNMP_Ver} completed! enjoy it."/kill -KILL $$/g' include/end.sh \
-    && ./install.sh lnmp \
-# The default mysql password is "root".Change it to your password if you want
-    || sed -i 's/DB_Root_Password=""/DB_Root_Password="root"/g' tools/reset_mysql_root_password.sh \
-    && sed -i 's/    read/#    read/g' tools/reset_mysql_root_password.sh \
-    && apt --no-install-recommends install openssh-server -y \
-    && sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config \
-    && sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/g' /etc/ssh/sshd_config \
-    && cd ../ \
-    && rm -rf lnmp1.7.tar.gz lnmp1.7 lnmp-install.log \
-    && mkdir ~/.ssh \
-    && touch ~/.ssh/authorized_keys \
-    && apt remove gcc g++ make cmake autoconf automake wget cpp -y \
+    && export DEBIAN_FRONTEND=noninteractive \
+    && apt --no-install-recommends install nginx mysql-server mysql-client php7.2 php7.2-fpm php7.2-mysql -y \
+    && apt --no-install-recommends install php7.2-fpm php7.2-mysql php7.2-curl php7.2-gd php7.2-mbstring php7.2-xml php7.2-xmlrpc php7.2-zip php7.2-opcache php7.2-ldap php7.2-json php7.2-redis php7.2-memcached -y \
+    && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && dpkg-reconfigure -f noninteractive tzdata \
+    && sed -i 's/index index.html index.htm index.nginx-debian.html;/index index.php index.html index.htm index.nginx-debian.html;/g' /etc/nginx/sites-available/default \
+    && sed -i '/location ~ \\.php$ {/s/#//' /etc/nginx/sites-available/default \
+    && sed -i '/include snippets\/fastcgi-php.conf;/s/#//' /etc/nginx/sites-available/default \
+    && sed -i '/fastcgi_pass 127.0.0.1:9000/s/#//' /etc/nginx/sites-available/default \
+    && sed -i '/fastcgi_pass 127.0.0.1:9000/{n;s/#//;}' /etc/nginx/sites-available/default \
+    && sed -i 's/listen = \/run\/php\/php7.2-fpm.sock/listen = 127.0.0.1:9000/g' /etc/php/7.2/fpm/pool.d/www.conf \
+    && touch /var/www/html/info.php \
+    && echo "<?php phpinfo() ?>">>/var/www/html/info.php \
+    && service nginx start || service nginx restart && service php7.2-fpm start || service php7.2-fpm restart && service mysql start || service mysql restart \
     && apt clean \
     && apt autoclean \
-    && apt autoremove -y \
-    && dpkg -l | grep ^rc | awk '{print $2}' | xargs dpkg -P \
-    && /etc/init.d/ssh restart \
-    && lnmp restart \
-    && lnmp status \
-    && lnmp stop
+    && apt autoremove -y
 
-# The default root password is "root".Change the second "root" to your password if you want
-CMD /etc/init.d/ssh start && echo "root:root" | chpasswd && lnmp restart && lnmp status && tail -f /var/log/wtmp
+CMD service nginx start || service nginx restart && service php7.2-fpm start || service php7.2-fpm restart && service mysql start || service mysql restart && tail -f /var/log/wtmp
