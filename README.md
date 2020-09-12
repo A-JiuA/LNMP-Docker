@@ -7,6 +7,7 @@ LNMP-Docker是一个使用Docker快速部署的LNMP环境
 git clone https://github.com/A-JiuA/LNMP-Docker.git && cd LNMP-Docker
 docker build -t lnmp:latest .
 ```
+整个过程大约需要2-10分钟
 ### 启动
 将网站目录挂载到容器启动
 ```
